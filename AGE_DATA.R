@@ -11,13 +11,13 @@ library("tidyverse")
 setwd("C:/Users/poles/Documents/00Deakin_Docs/R/BCL_R/Cairns_Campaign/CairnsCampaign")
 
 #upload CN data:
-age_carbon <- read.csv( "CN_NewDATA.csv") %>% #created in CN_DATA.R
-              filter(SOC_AGE =="AGE") #We filter out AGE to be double sure we look at AGE sediment slices only
-View(age_carbon )
+age_carbon <- read_xlsx("MASTER_Field_SOC_DataSheet_Cairns2022.xlsx",sheet="CN_NEWDATA")  %>% #created in CN_DATA.R
+              filter(SOC_AGE =="AGE") #We filter out AGE samples to be double sure we look at AGE sediment slices only
+str(age_carbon)
 
 #Upload MAR data:
 #MAR = Mass Accretion Rate (Created based on Pere's Age-dating Report)
-MAR <- read_xlsx("MASTER_Field_SOC_DataSheet_Cairns2022.xlsx",sheet="Age4R") #Sheet=1 is where SOC data are
+MAR <- read_xlsx("MASTER_Field_SOC_DataSheet_Cairns2022.xlsx",sheet="Age4R") #Sheet where MAR data are
 MAR
 
 #Join Pere's MAR data with CN data by CoreID:
@@ -26,14 +26,14 @@ View(age_carbon_mar )
 
 #RESULTS=======
 #We assume here who core (100cm long) worked well with Pb210 isotopes
-results <- age_carbon_core %>%
+results <- age_carbon_mar %>%
   
   #Compute CAR = Carbon Accretion Rate:
   mutate(CAR_gcm2y = C.percent/100 * MAR)%>% #Convert % into fraction by "/100"
 
-  group_by(CoreID) %>% #Group All OC% values by core and estimated the weighted mean of OC%
+  group_by(CoreID) %>% #Group All CAR values by core
   
-  #get the weighted mean of %OC:
+  #get the weighted mean of CAR per core:
   summarise(AV = weighted.mean(CAR_gcm2y*100, na.rm = T), #1 g/cm2 = 100 tonnes per hectare
             SD = sd(CAR_gcm2y*100, na.rm = T), #SD = Standard Deviation
             N  = n(),                          #N  = number of replicates
@@ -42,11 +42,11 @@ results <- age_carbon_core %>%
 results
 
 #Get on mean CAR value result:
-overall_result <- age_carbon_core %>%
+overall_result <- age_carbon_mar %>%
   
   #Compute CAR = Carbon Accretion Rate:
   mutate(CAR_gcm2y = C.percent/100 * MAR)%>% #Convert % into fraction by "/100"
-  mutate( habitat = "Mangrrove") %>%
+  mutate( habitat = "Mangrove") %>%
   
   group_by(habitat)%>%
   
@@ -84,11 +84,12 @@ ggplot(results, aes(CoreID, AV))  +
 #Plot overall_result:
 ggplot(overall_result, aes(habitat, AV))  +
   geom_point(aes( size = 3)) +
-  geom_errorbar( aes(ymin= AV+SE, ymax = AV-SE), width=.2)+
+  geom_errorbar( aes(ymin= AV+SE, ymax = AV-SE), width=.1)+
   labs(x= "", y = bquote('Carbon Accretion Rate  ' (Mg*~ha^-1 ~y^-1)))+ #Mg = tonne
+  scale_y_continuous(limits = c(0,3))+
   
   ggtitle("Cairns Airport campaign")+
-  theme_bw() +
+  theme_classic() +
   theme(axis.text.x = element_text(size = 16, color = "black"),
         axis.text.y = element_text(size = 16, color = "black"),
         axis.title.y = element_text(size = 16),
@@ -97,4 +98,5 @@ ggplot(overall_result, aes(habitat, AV))  +
         strip.text=element_text(size=16),
         plot.title = element_text(size = 20, face = "bold", vjust = 0.5, hjust=0.5),
         strip.background =  element_rect(fill = "white"))
+
 
